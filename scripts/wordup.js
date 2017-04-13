@@ -52,8 +52,24 @@ function endGame() {
 function addNewWordSubmission(word) {
     // Do we already have a wordSubmission with this word?
     // TODO 21
-    // replace the hardcoded 'false' with the real answer
-    var alreadyUsed = false;
+
+    //var alreadyUsed=model.wordSubmissions.filter(function(submission){return submission.word==word}).length>0;
+
+    var alreadyUsedArray = model.wordSubmissions.filter(function(submission){
+        return submission.word==word
+    });
+
+    if (alreadyUsedArray.length> 0){
+        var alreadyUsed = true;
+    }
+    else {
+        var alreadyUsed = false;
+    };
+
+
+
+        // replace the hardcoded 'false' with the real answer
+    //var alreadyUsed = false;
 
     // if the word is valid and hasn't already been used, add it
     if (containsOnlyAllowedLetters(word) && alreadyUsed == false) {
@@ -74,23 +90,37 @@ function checkIfWordIsReal(word) {
     // make an AJAX call to the Pearson API
     $.ajax({
         // TODO 13 what should the url be?
-        url: "http://api.pearson.com/v2/dictionaries/lasde/entries",
+        url: "http://api.pearson.com/v2/dictionaries/lasde/entries?headword="+word,
         success: function(response) {
             console.log("We received a response from Pearson!");
 
             // let's print the response to the console so we can take a looksie
             console.log(response);
 
-            // TODO 14
+
             // Replace the 'true' below.
             // If the response contains any results, then the word is legitimate.
             // Otherwise, it is not.
-            var theAnswer = true;
+            var theAnswer;             // TODO 14
+            if (response.results.length>0) {
+                theAnswer = true;
+            }
+            else {
+                theAnswer = false;
+            };
 
-            // TODO 15
+//            var theAnswer=response.results.length>0;
+
+
+
             // Update the corresponding wordSubmission in the model
+            model.wordSubmissions.forEach(function(submission) {             // TODO 15
+                if(submission.word==word) {
+                    submission.isRealWord=theAnswer;
+                }
+            });
 
-
+//model.wordSubmissions.forEach(function(submission){if(submission.word===word){submission.isRealWord=theAnswer}});
             // re-render
             render();
         },
@@ -205,14 +235,28 @@ function wordSubmissionChip(wordSubmission) {
     // if we know the status of this word (real word or not), then add a green score or red X
     if (wordSubmission.hasOwnProperty("isRealWord")) {
         var scoreChip = $("<span></span>").text("⟐");
-        // TODO 17
+
         // give the scoreChip appropriate text content
-
-        // TODO 18
+        if (wordSubmission.isRealWord == true){         // TODO 17
+            scoreChip.text(wordScore(wordSubmission.word));
+        }
+        else {
+            scoreChip.text("X");
+        }
         // give the scoreChip appropriate css classes
+        scoreChip.attr("class","tag tag-sm");         // TODO 18
+        if (wordSubmission.isRealWord == true){
+            scoreChip.addClass("tag-primary");
+        }
+        else {
+            scoreChip.addClass("tag-danger");
+        };
 
-        // TODO 16
+        //scoreChip.attr("class","tag tag-sm").addClass(wordSubmission.isRealWord?"tag-primary":"tag-danger");
+
+
         // append scoreChip into wordChip
+        wordChip.append(scoreChip);         // TODO 16
 
     }
 
@@ -351,7 +395,7 @@ function wordScore(word) {
     // TODO 19
     // Replace the empty list below.
     // Map the list of letters into a list of scores, one for each letter.
-    var letterScores = [];
+    var letterScores = letters.map(letterScore);
 
     // return the total sum of the letter scores
     return letterScores.reduce(add, 0);
@@ -375,7 +419,7 @@ function currentScore() {
 
     // TODO 20
     // return the total sum of the word scores
-    return 0;
+    return wordScores.reduce(add,0);
 }
 
 
